@@ -116,26 +116,73 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // Gallery carousel
-  var galleryTrack = document.querySelector('.gallery-track');
+  // Gallery carousel on mobile
+  var galleryViewport = document.querySelector('.gallery-viewport');
+  var galleryGrid = document.querySelector('.gallery-grid');
+  var galleryItems = document.querySelectorAll('.gallery-item');
   var galleryDots = document.querySelectorAll('.gallery-dot');
   var galleryIndex = 0;
+  var galleryTimer = null;
 
-  function updateGallery(i) {
-    galleryIndex = i;
-    galleryTrack.style.transform = 'translateX(' + (-i * 100) + '%)';
-    galleryDots.forEach(function (d, idx) {
-      d.classList.toggle('active', idx === i);
+  function isMobileGallery() {
+    return window.innerWidth <= 768;
+  }
+
+  function setActiveGalleryDot() {
+    galleryDots.forEach(function (dot, idx) {
+      dot.classList.toggle('active', idx === galleryIndex);
     });
   }
 
-  if (galleryTrack && galleryDots.length) {
-    galleryDots.forEach(function (dot, idx) {
-      dot.addEventListener('click', function () { updateGallery(idx); });
-    });
-    setInterval(function () {
-      updateGallery((galleryIndex + 1) % galleryDots.length);
+  function syncGalleryPosition() {
+    if (!galleryGrid || !galleryItems.length) {
+      return;
+    }
+    if (!isMobileGallery()) {
+      galleryGrid.style.transform = '';
+      galleryIndex = 0;
+      setActiveGalleryDot();
+      return;
+    }
+    var slideWidth = galleryViewport ? galleryViewport.clientWidth : 0;
+    galleryGrid.style.transform = 'translateX(-' + (galleryIndex * slideWidth) + 'px)';
+    setActiveGalleryDot();
+  }
+
+  function stopGalleryAutoplay() {
+    if (galleryTimer) {
+      clearInterval(galleryTimer);
+      galleryTimer = null;
+    }
+  }
+
+  function startGalleryAutoplay() {
+    stopGalleryAutoplay();
+    if (!isMobileGallery() || galleryItems.length < 2) {
+      return;
+    }
+    galleryTimer = setInterval(function () {
+      galleryIndex = (galleryIndex + 1) % galleryItems.length;
+      syncGalleryPosition();
     }, 4000);
+  }
+
+  if (galleryGrid && galleryItems.length) {
+    syncGalleryPosition();
+    startGalleryAutoplay();
+
+    galleryDots.forEach(function (dot, idx) {
+      dot.addEventListener('click', function () {
+        galleryIndex = idx;
+        syncGalleryPosition();
+        startGalleryAutoplay();
+      });
+    });
+
+    window.addEventListener('resize', function () {
+      syncGalleryPosition();
+      startGalleryAutoplay();
+    });
   }
 
   // Hamburger menu
